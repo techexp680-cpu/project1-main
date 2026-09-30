@@ -1,0 +1,149 @@
+{
+  "project_name": "Operator's Choice",
+  "domain": "Premium Tactical Streetwear E-commerce",
+  "theme": "Dark",
+  "archetype": "5 (Luxury) with Tactical/Performance Undertones",
+  "design_philosophy": {
+    "core_principles": [
+      "Cinematic and Rugged: Use dark moody lighting and high-contrast layouts.",
+      "Godly Dark Luxury: Minimalist aesthetic relying on deep blacks, sharp typography, and subtle metallic/olive accents.",
+      "Tactical Precision: Sharp edges, dense information hierarchy where needed, structured grid layouts."
+    ],
+    "vibe": "Forged for the Fearless - intimidating yet highly premium, like a fusion of high-end fashion and military gear.",
+    "anti_patterns": [
+      "No generic soft shadows or rounded bubbles.",
+      "Avoid pure white backgrounds; use off-white only if absolutely necessary for contrast in specific elements.",
+      "Do not use generic fonts like Inter or Roboto for headings."
+    ]
+  },
+  "typography": {
+    "fonts": {
+      "headings": "Bebas Neue",
+      "body": "Manrope",
+      "accents": "JetBrains Mono"
+    },
+    "hierarchy": {
+      "h1": "text-5xl sm:text-6xl tracking-tight uppercase",
+      "h2": "text-4xl sm:text-5xl tracking-tight uppercase",
+      "h3": "text-2xl sm:text-3xl uppercase",
+      "body": "text-base tracking-wide text-gray-300",
+      "small": "text-xs tracking-[0.2em] uppercase text-gray-400",
+      "overline": "text-xs tracking-[0.2em] uppercase text-olive-500 font-bold"
+    },
+    "rules": [
+      "Headings must be uppercase to convey military strength and tactical presence.",
+      "Use JetBrains Mono for specs, stock counts, and technical details."
+    ]
+  },
+  "colors": {
+    "background": {
+      "primary": "#0A0A0A",
+      "surface": "#1A1A1A",
+      "surface_hover": "#242424"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A3A3A3",
+      "muted": "#737373"
+    },
+    "accents": {
+      "brand_primary": "#FFFFFF",
+      "brand_secondary": "#A3A3A3",
+      "olive": "#354026",
+      "khaki": "#C3B091",
+      "gold": "#D4AF37",
+      "danger": "#FF3B30"
+    },
+    "borders": {
+      "default": "#2D2D2D",
+      "focus": "#D4AF37"
+    }
+  },
+  "spacing_and_layout": {
+    "container": "max-w-7xl mx-auto px-6 md:px-12",
+    "section_spacing": "py-24 md:py-32",
+    "grid_strategy": {
+      "product_grid": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1 sm:gap-4",
+      "collections_bento": "grid-cols-1 md:grid-cols-12 gap-4"
+    },
+    "borders_and_radius": {
+      "radius_default": "rounded-none",
+      "radius_button": "rounded-none",
+      "card_border": "border border-[#2D2D2D]"
+    }
+  },
+  "surface_strategies": {
+    "navigation": "Crystal Glass - backdrop-blur-xl bg-[#0A0A0A]/80 border-b border-white/10",
+    "product_cards": "Flat solid background with sharp 1px border on hover, dark gray fill.",
+    "buttons": "Solid white background with black text for primary, transparent with 1px border for secondary. Hover state uses #1A1A1A or Olive.",
+    "badges": "Military Khaki or Gold for 'Limited Edition' and 'Bestseller'. Sharp edges."
+  },
+  "components_specifications": {
+    "hero": "Cinematic full-screen with dark overlay (bg-black/50), featuring bold typography centered or left-aligned. Call to action in stark white.",
+    "product_card": "No internal padding for images. Image takes 80% height, details below. Hover swaps image to secondary lifestyle shot.",
+    "sliding_cart": "Dark sidebar (bg-[#0A0A0A]) with stark borders, clear typography for checkout totals, and a fixed bottom CTA.",
+    "marquee": "Use for 'LIMITED DROP' or 'XIII KARGIL'. Low contrast text (dark grey on black) slowly panning in background, or high contrast small text for announcements.",
+    "checkout": "Multi-step accordion style, clear input borders, strict data validation, military-style summary receipt.",
+    "pdp_gallery": "Left side sticky gallery or grid of massive HD images. Right side sticky details.",
+    "countdown_timer": "Monospaced font (JetBrains Mono) with stark dividers for drops."
+  },
+  "motion_and_interactions": {
+    "hover": "Images subtly scale up (scale-105) over 0.5s ease-out. Buttons inverse colors instantly.",
+    "page_transitions": "Fade in smoothly, content slides up slightly (20px).",
+    "scroll": "Parallax effect on hero and collection background images."
+  },
+  "media_assets": {
+    "hero": [
+      {
+        "url": "https://images.unsplash.com/photo-1579883180654-695b7f038d4c",
+        "description": "Dark moody streetwear model, sitting on concrete bench (use for hero or main collection)",
+        "category": "hero"
+      }
+    ],
+    "collections": [
+      {
+        "url": "https://images.unsplash.com/photo-1618924250456-0c7d405f2d53",
+        "description": "Woman in black hoodie (use for hoodies collection)",
+        "category": "collections"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1552902875-9ac1f9fe0c07",
+        "description": "Tactical cargo pants detail (use for bottoms/cargo collection)",
+        "category": "collections"
+      }
+    ],
+    "products": [
+      {
+        "url": "https://images.pexels.com/photos/3933967/pexels-photo-3933967.jpeg",
+        "description": "Urban tactical streetwear pose (use for product lifestyle)",
+        "category": "products"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1586897414837-468be47328c4",
+        "description": "Man in black and red hoodie (product shot)",
+        "category": "products"
+      },
+      {
+        "url": "https://images.pexels.com/photos/15553981/pexels-photo-15553981.jpeg",
+        "description": "Casual streetwear young man outdoors (product lifestyle)",
+        "category": "products"
+      }
+    ],
+    "backgrounds": [
+      {
+        "url": "https://images.pexels.com/photos/7598668/pexels-photo-7598668.jpeg",
+        "description": "Dark leather texture (use for section backgrounds or dark premium overlays)",
+        "category": "textures"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the color palette. Do not inject bright colors outside of the defined accents.",
+    "Ensure the application is mobile-first, paying special attention to the sticky navigation and sliding cart.",
+    "Use Phosphor icons or Lucide React for crisp, professional iconography.",
+    "Implement the 'Bento Grid' for the Collections Showcase (XIII Kargil, Bravest of the Brave, etc.).",
+    "All interactive elements must include data-testid for testing.",
+    "Ensure high-contrast ratios for all typography over images; use gradient overlays (black/70 to transparent) where needed.",
+    "Buttons should have zero border-radius for the rugged tactical feel."
+  ]
+}

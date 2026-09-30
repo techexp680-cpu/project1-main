@@ -1,0 +1,2 @@
+/* App-level CSS — minimal, most styling in index.css/Tailwind */
+.App { min-height: 100vh; background: #0A0A0A; }

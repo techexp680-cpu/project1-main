@@ -1,0 +1,50 @@
+{
+  "summary": "First end-to-end smoke test of Operator's Choice. Backend health, products (12), filters, best-sellers, new-drops, product detail, auth (register/login/me/google/forgot/reset), wishlist, coupons (FORGED10/OPERATOR20 reject/FREESHIP), order creation with correct math (subtotal 2998, FORGED10 discount 299.80, GST 5% = 134.91, free shipping over 1999, total 2833.11), order tracking, admin stats, admin status update, admin delete (200 OK), newsletter, contact, 403 for non-admin all PASS. Frontend home/hero/nav/shop(12 items)/product detail (size-L + add-to-cart opens sliding cart)/cart page (FORGED10 coupon)/track order all PASS. Admin login redirected to /admin successfully but tab data-testids not detected.",
+  "tested_scope": ["frontend", "backend", "auth", "integration"],
+  "passed": [
+    "GET /api/ health (brand=Operator's Choice)",
+    "GET /api/products returns 12 items; filters category/collection/price/q work",
+    "GET /api/products/best-sellers?limit=8 returns 8 items",
+    "GET /api/products/new-drops returns is_new_drop items",
+    "GET /api/products/{slug} returns {product, similar:4}",
+    "POST /api/auth/register, /login, /google, /forgot (returns demo_otp), /reset, GET /me - all work; admin is_admin=true",
+    "POST /api/account/wishlist/{product_id} toggles wishlist",
+    "POST /api/coupons/check: FORGED10 (1500) valid, OPERATOR20 (1500) rejected with min-order msg, FREESHIP valid",
+    "POST /api/orders math correct: subtotal=2998, FORGED10 discount=299.80, GST=134.91, shipping_fee=0 (free over 1999 post-discount), total=2833.11, payment_id=pay_MOCK*, 3 tracking_steps initialised",
+    "GET /api/orders/track/{order_number} returns full order with tracking",
+    "GET /api/orders/mine returns user's orders",
+    "GET /api/admin/stats (admin) returns counts; non-admin gets 403",
+    "PATCH /api/admin/orders/{n}/status?new_status=shipped returns {ok:true}; tracking_steps updated (3 done)",
+    "DELETE /api/admin/products/{slug} returns 200",
+    "POST /api/newsletter and /api/contact return success",
+    "Frontend Home: 'FORGED FOR THE FEARLESS' hero, hero-shop-now, main-nav, logo all rendered",
+    "Frontend Shop: 12 product cards, sort-select present, category/size filters visible",
+    "Frontend Product detail: size-L selectable, add-to-cart opens sliding-cart with item",
+    "Frontend Cart: FORGED10 applied, proceed-checkout present",
+    "Frontend Admin login redirects to /admin route",
+    "Frontend Track Order: OC2606307665 lookup renders 3 tracking steps (Order Confirmed, Packed, Shipped) and STATUS=SHIPPED"
+  ],
+  "failed": [
+    {
+      "area": "Backend contract",
+      "issue": "POST /api/orders shipping_address requires fields named 'full_name' and 'email', but data-testid hints + the review_request use 'name'. Confirmed working when 'full_name' is sent — verify frontend Checkout.jsx is sending 'full_name' (not 'name').",
+      "evidence": "First request with 'name' returned 422 missing full_name/email; resending with full_name+email succeeded.",
+      "priority": "MEDIUM"
+    },
+    {
+      "area": "Frontend Admin page",
+      "issue": "Admin tabs missing data-testid attributes (tab-overview, tab-orders, tab-products, tab-customers). The /admin route loads after admin login but the four tab test-ids were not found by selector.",
+      "evidence": "After admin login & navigate to /admin, page.locator('[data-testid=\"tab-overview\"]').count() returned 0 for all four tabs.",
+      "priority": "MEDIUM"
+    }
+  ],
+  "action_items": [
+    "Verify Checkout.jsx submits shipping_address.full_name and shipping_address.email (not 'name') to POST /api/orders, since backend Pydantic model requires full_name+email.",
+    "Add data-testid='tab-overview' | 'tab-orders' | 'tab-products' | 'tab-customers' on the admin tab buttons in /admin page so admin UI is testable end-to-end."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "~90%"},
+  "retest_needed": true,
+  "full_testing_deferred": true,
+  "test_credentials_used": {"admin": "admin@operatorschoice.com / Operator@2026 (worked)", "self_registered": "testuser_t1@example.com / Test@1234"},
+  "mocked_apis_validated": ["Razorpay (pay_MOCK* id generated)", "Email/OTP (demo_otp returned and accepted by /reset)", "Google login (POST /api/auth/google accepts arbitrary name+email)"]
+}
