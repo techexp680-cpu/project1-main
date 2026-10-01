@@ -35,6 +35,8 @@ jobs:
 
       - name: Build React application
         working-directory: project1-main/frontend
+        env:
+          CI: false
         run: npm run build
 
       - name: Setup Pages
