@@ -37,6 +37,7 @@ jobs:
         working-directory: project1-main/frontend
         env:
           CI: false
+          PUBLIC_URL: /project1-main
         run: npm run build
 
       - name: Setup Pages
