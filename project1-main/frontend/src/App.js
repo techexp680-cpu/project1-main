@@ -42,7 +42,7 @@ function ScrollToTop() {
 export default function App() {
   return (
     <StoreProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/project1-main">
         <ScrollToTop />
 
         <Routes>
