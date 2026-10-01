@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: project1-main/frontend
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build React application
         working-directory: project1-main/frontend
@@ -43,7 +43,7 @@ jobs:
       - name: Upload build
         uses: actions/upload-pages-artifact@v3
         with:
-          path: project1-main/frontend/dist
+          path: project1-main/frontend/build
 
   deploy:
     environment:
