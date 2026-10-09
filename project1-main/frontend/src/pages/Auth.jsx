@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useStore } from "../lib/store";
 
-const API_BASE = "http://https://project1-main.onrender.com/api";
+const API_BASE = "https://project1-main.onrender.com/api";
 
 function getErrorMessage(error) {
   const data = error?.response?.data || error?.data;
@@ -273,7 +273,7 @@ function AuthPage({ defaultMode = "login" }) {
             className="text-neutral-500 hover:text-gold text-sm"
             aria-label="Close"
           >
-            ✕
+            âœ•
           </Link>
         </div>
 
@@ -607,3 +607,4 @@ export function Forgot() {
 }
 
 export default Login;
+

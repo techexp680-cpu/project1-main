@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import api from "../lib/api";
 import ProductCard from "../components/ProductCard";
 import CountdownTimer from "../components/CountdownTimer";
@@ -9,7 +9,7 @@ export function NewDrop() {
 
   useEffect(() => {
     api
-      .get("http://https://project1-main.onrender.com/api/products/new-drops")
+      .get("/products/new-drops")
       .then(({ data }) => setItems(data));
   }, []);
 
@@ -43,7 +43,7 @@ export function BestSellers() {
 
   useEffect(() => {
     api
-      .get("http://https://project1-main.onrender.com/api/products/best-sellers?limit=24")
+      .get("/products/best-sellers?limit=24")
       .then(({ data }) => setItems(data));
   }, []);
 
@@ -57,3 +57,4 @@ export function BestSellers() {
     </div>
   );
 }
+
