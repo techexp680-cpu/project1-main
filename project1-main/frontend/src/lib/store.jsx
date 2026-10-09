@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 const StoreCtx = createContext(null);
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = "http://https://project1-main.onrender.com/api";
 const SESSION_LIMIT = 24 * 60 * 60 * 1000;
 
 function loadCart() {

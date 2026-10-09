@@ -28,7 +28,7 @@ export default function Footer() {
       setBusy(true);
 
       const response = await fetch(
-        "http://localhost:8000/api/newsletter",
+        "http://https://project1-main.onrender.com/api/newsletter",
         {
           method: "POST",
           headers: {

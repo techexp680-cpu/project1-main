@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import AdminProductEditor from "./AdminProductEditor";
 import { Plus, Edit, RefreshCcw } from "lucide-react";
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = "http://https://project1-main.onrender.com/api";
 
 const TABS = ["Overview", "Orders", "Products", "Customers"];
 

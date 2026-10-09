@@ -40,7 +40,7 @@ export default function Product() {
         setData(null);
 
         const response = await api.get(
-          `http://localhost:8000/api/products/${slug}`
+          `http://https://project1-main.onrender.com/api/products/${slug}`
         );
 
         const productData = response.data;

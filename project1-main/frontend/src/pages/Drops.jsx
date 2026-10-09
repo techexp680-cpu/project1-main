@@ -9,7 +9,7 @@ export function NewDrop() {
 
   useEffect(() => {
     api
-      .get("http://localhost:8000/api/products/new-drops")
+      .get("http://https://project1-main.onrender.com/api/products/new-drops")
       .then(({ data }) => setItems(data));
   }, []);
 
@@ -43,7 +43,7 @@ export function BestSellers() {
 
   useEffect(() => {
     api
-      .get("http://localhost:8000/api/products/best-sellers?limit=24")
+      .get("http://https://project1-main.onrender.com/api/products/best-sellers?limit=24")
       .then(({ data }) => setItems(data));
   }, []);
 

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useStore } from "../lib/store";
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = "http://https://project1-main.onrender.com/api";
 
 function getErrorMessage(error) {
   const data = error?.response?.data || error?.data;

@@ -1,18 +1,19 @@
 import axios from "axios";
 
-const BACKEND_URL = "http://localhost:8000";
-export const API = `${BACKEND_URL}/api`;
+const BACKEND_URL = "https://project1-main.onrender.com";
 
-const client = axios.create({ baseURL: API });
+export const API = BACKEND_URL + "/api";
 
-client.interceptors.request.use((config) => {
-  const token = localStorage.getItem("oc_token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+// Format amounts as Indian Rupees (INR)
+export const inr = (amount) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(amount) || 0);
+
+const client = axios.create({
+  baseURL: API,
 });
 
 export default client;
-
-export function inr(n) {
-  return "₹" + Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
-}

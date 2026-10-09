@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { X, Upload, Plus, Trash2, GripVertical } from "lucide-react";
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = "http://https://project1-main.onrender.com/api";
 
 const COLLECTIONS = [
   "operator",

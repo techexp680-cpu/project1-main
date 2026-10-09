@@ -32,7 +32,7 @@ export function TrackOrder() {
 
     xhr.open(
       "GET",
-      "http://localhost:8000/api/orders/track/" + encodeURIComponent(cleanNumber),
+      "http://https://project1-main.onrender.com/api/orders/track/" + encodeURIComponent(cleanNumber),
       true
     );
 

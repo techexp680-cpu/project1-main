@@ -84,7 +84,7 @@ export default function Checkout() {
         setRazorpayReady(scriptLoaded);
 
         const { data } = await api.get(
-          "http://localhost:8000/api/payments/config"
+          "http://https://project1-main.onrender.com/api/payments/config"
         );
 
         setPayCfg({
@@ -214,7 +214,7 @@ export default function Checkout() {
 
     try {
       const { data: razorpayOrder } = await api.post(
-        "http://localhost:8000/api/payments/create-order",
+        "http://https://project1-main.onrender.com/api/payments/create-order",
         {
           items: paymentItems,
           shipping_address: form,
@@ -266,7 +266,7 @@ export default function Checkout() {
         handler: async function (response) {
           try {
             const { data: order } = await api.post(
-              "http://localhost:8000/api/payments/verify",
+              "http://https://project1-main.onrender.com/api/payments/verify",
               {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,

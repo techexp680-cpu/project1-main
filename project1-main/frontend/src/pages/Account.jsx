@@ -13,7 +13,7 @@ import {
 import { useStore } from "../lib/store";
 import ProductCard from "../components/ProductCard";
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = "http://https://project1-main.onrender.com/api";
 
 function money(value) {
   return "₹" + Number(value || 0).toLocaleString("en-IN", {

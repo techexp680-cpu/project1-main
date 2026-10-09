@@ -44,7 +44,7 @@ export default function Home() {
 
   useEffect(() => {
     api
-      .get("http://localhost:8000/api/products/new-drops")
+      .get("http://https://project1-main.onrender.com/api/products/new-drops")
       .then(({ data }) => {
         setDrops(data);
       })
@@ -53,7 +53,7 @@ export default function Home() {
       });
 
     api
-      .get("http://localhost:8000/api/products/best-sellers?limit=8")
+      .get("http://https://project1-main.onrender.com/api/products/best-sellers?limit=8")
       .then(({ data }) => {
         setBest(data);
       })
