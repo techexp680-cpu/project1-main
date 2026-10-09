@@ -1,8 +1,10 @@
+
 name: Deploy Operator Choice Frontend to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -11,7 +13,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
@@ -27,18 +29,21 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: project1-main/frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        working-directory: project1-main/frontend
+        working-directory: frontend
         run: npm ci --legacy-peer-deps
 
       - name: Build React application
-        working-directory: project1-main/frontend
+        working-directory: frontend
         env:
-          CI: false
+          CI: "false"
           PUBLIC_URL: /project1-main
         run: npm run build
+
+      - name: Verify build output
+        run: test -f frontend/build/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -46,7 +51,7 @@ jobs:
       - name: Upload build
         uses: actions/upload-pages-artifact@v3
         with:
-          path: project1-main/frontend/build
+          path: frontend/build
 
   deploy:
     environment:
