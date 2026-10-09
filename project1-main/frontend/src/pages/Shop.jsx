@@ -42,9 +42,11 @@ export default function Shop() {
     if (q) params.q = q;
 
     api
-      .get("http://https://project1-main.onrender.com/api/products", { params })
-      .then(({ data }) => {
-        setProducts(data);
+      
+.get("/products", { params })
+.then(({ data }) => {
+  setProducts(data);
+
         setLoading(false);
       })
       .catch(() => {
