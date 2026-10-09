@@ -1,57 +1,13 @@
-name: Deploy Operator Choice Frontend to GitHub Pages
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Find frontend
-        run: |
-          echo "Repository root:"
-          ls -la
-          echo "Frontend folders:"
-          find . -maxdepth 3 -name package.json -not -path '*/node_modules/*'
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci --legacy-peer-deps
-
-      - name: Build React application
-        working-directory: frontend
-        env:
-          CI: "false"
-          PUBLIC_URL: /project1-main
-        run: npm run build
-
-      - name: Verify build
-        run: test -f frontend/build/index.html
+run: |
+          mkdir -p public-site
+          cp -R "${{ steps.locate.outputs.frontend_dir }}/build/." public-site/
+          touch public-site/.nojekyll
+          test -f public-site/index.html
 
       - name: Upload build
         uses: actions/upload-pages-artifact@v3
         with:
-          path: frontend/build
+          path: public-site
 
   deploy:
     environment:
