@@ -1,9 +1,8 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 
 const StoreCtx = createContext(null);
 
-const API_BASE = "https://project1-main.onrender.com/api";
+const API_BASE = "http://localhost:8001/api";
 const SESSION_LIMIT = 24 * 60 * 60 * 1000;
 
 function loadCart() {
@@ -71,7 +70,6 @@ async function request(path, options = {}) {
   const text = await response.text();
 
   let data = {};
-
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
@@ -79,9 +77,7 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(
-      data.detail || data.message || "Request failed"
-    );
+    throw new Error(data.detail || data.message || "Request failed");
   }
 
   return data;
@@ -91,9 +87,7 @@ export function StoreProvider({ children }) {
   const [user, setUser] = useState(loadSavedUser());
   const [cart, setCart] = useState(loadCart());
   const [cartOpen, setCartOpen] = useState(false);
-  const [wishlist, setWishlist] = useState(
-    loadSavedUser()?.wishlist || []
-  );
+  const [wishlist, setWishlist] = useState(loadSavedUser()?.wishlist || []);
 
   useEffect(() => {
     const savedUser = loadSavedUser();
@@ -125,19 +119,15 @@ export function StoreProvider({ children }) {
 
   const addToCart = (item) => {
     setCart((prev) => {
-      const key = (i) =>
-        `${i.product_id}|${i.size}|${i.color || ""}`;
-
+      const key = (i) => `${i.product_id}|${i.size}|${i.color || ""}`;
       const idx = prev.findIndex((p) => key(p) === key(item));
 
       if (idx >= 0) {
         const next = [...prev];
-
         next[idx] = {
           ...next[idx],
           qty: next[idx].qty + item.qty,
         };
-
         return next;
       }
 
@@ -150,17 +140,13 @@ export function StoreProvider({ children }) {
   const updateQty = (idx, qty) => {
     setCart((currentCart) =>
       currentCart.map((item, index) =>
-        index === idx
-          ? { ...item, qty: Math.max(1, qty) }
-          : item
+        index === idx ? { ...item, qty: Math.max(1, qty) } : item
       )
     );
   };
 
   const removeItem = (idx) => {
-    setCart((currentCart) =>
-      currentCart.filter((_, index) => index !== idx)
-    );
+    setCart((currentCart) => currentCart.filter((_, index) => index !== idx));
   };
 
   const clearCart = () => {
@@ -180,7 +166,6 @@ export function StoreProvider({ children }) {
     });
 
     const loggedUser = saveSession(data);
-
     setUser(loggedUser);
     setWishlist(loggedUser.wishlist || []);
 
@@ -194,7 +179,6 @@ export function StoreProvider({ children }) {
     });
 
     const registeredUser = saveSession(data);
-
     setUser(registeredUser);
     setWishlist(registeredUser.wishlist || []);
 
@@ -202,9 +186,7 @@ export function StoreProvider({ children }) {
   };
 
   const googleLogin = async () => {
-    const demoEmail = `operator${Math.floor(
-      Math.random() * 9000 + 1000
-    )}@gmail.com`;
+    const demoEmail = `operator${Math.floor(Math.random() * 9000 + 1000)}@gmail.com`;
 
     const data = await request("/auth/google", {
       method: "POST",
@@ -215,7 +197,6 @@ export function StoreProvider({ children }) {
     });
 
     const loggedUser = saveSession(data);
-
     setUser(loggedUser);
     setWishlist(loggedUser.wishlist || []);
 
@@ -234,25 +215,16 @@ export function StoreProvider({ children }) {
   const toggleWishlist = async (productId) => {
     if (!user) return null;
 
-    const data = await request(
-      `/account/wishlist/${productId}`,
-      { method: "POST" }
-    );
+    const data = await request(`/account/wishlist/${productId}`, {
+      method: "POST",
+    });
 
     setWishlist(data.wishlist || []);
-
     return data.wishlist || [];
   };
 
-  const subtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.qty,
-    0
-  );
-
-  const itemCount = cart.reduce(
-    (sum, item) => sum + item.qty,
-    0
-  );
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
   return (
     <StoreCtx.Provider
