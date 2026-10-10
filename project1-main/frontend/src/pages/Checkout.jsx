@@ -1,13 +1,24 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import api, { inr } from "@/lib/api";
-import { useStore } from "@/lib/store";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import api, { inr } from "../lib/api";
+import { useStore } from "../lib/store";
 import { toast } from "sonner";
 
-const RAZORPAY_SCRIPT =
-  "https://checkout.razorpay.com/v1/checkout.js";
+const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
-const BACKEND_URL = "https://project1-main.onrender.com";
+/*
+  TEMPORARY ₹2 TEST MODE
+
+  true  = Product ₹1 + Shipping ₹1 + GST ₹0 = Total ₹2
+  false = Normal real checkout calculation
+
+  IMPORTANT:
+  After Razorpay testing is complete, change this back to false.
+*/
+const TEST_PAYMENT_MODE = true;
+const TEST_PRODUCT_PRICE = 1;
+const TEST_SHIPPING = 1;
+const TEST_GST = 0;
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -16,507 +27,599 @@ function loadRazorpayScript() {
       return;
     }
 
-    let script = document.querySelector(
+    const existingScript = document.querySelector(
       `script[src="${RAZORPAY_SCRIPT}"]`
     );
 
-    if (script?.dataset.loaded === "true" && !window.Razorpay) {
-      script.remove();
-      script = null;
+    if (existingScript) {
+      existingScript.onload = () => resolve(true);
+      existingScript.onerror = () => resolve(false);
+      return;
     }
 
-    if (!script) {
-      script = document.createElement("script");
-      script.src = RAZORPAY_SCRIPT;
-      script.async = true;
-      script.dataset.loaded = "false";
-      document.body.appendChild(script);
-    }
+    const script = document.createElement("script");
+    script.src = RAZORPAY_SCRIPT;
+    script.async = true;
 
-    const handleLoad = () => {
-      script.dataset.loaded = "true";
-      resolve(Boolean(window.Razorpay));
-    };
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
 
-    const handleError = () => {
-      script.remove();
-      resolve(false);
-    };
-
-    script.addEventListener("load", handleLoad, { once: true });
-    script.addEventListener("error", handleError, { once: true });
+    document.body.appendChild(script);
   });
 }
 
-const initialForm = {
-  name: "",
-  email: "",
-  phone: "",
-  address: "",
-  city: "",
-  state: "",
-  pincode: "",
-};
-
 export default function Checkout() {
-  const navigate = useNavigate();
-  const store = useStore();
+  const { cart, subtotal, clearCart, user } = useStore();
 
-  const cartItems =
-    store.cartItems || store.cart || store.items || [];
+  const loc = useLocation();
+  const nav = useNavigate();
 
-  const clearCart =
-    store.clearCart || store.clear_cart || (() => {});
+  const [coupon] = useState(loc.state?.coupon || null);
 
-  const [form, setForm] = useState(initialForm);
   const [payCfg, setPayCfg] = useState({
-    key_id: "",
     is_live: false,
+    key_id: "",
     currency: "INR",
   });
 
-  const [scriptReady, setScriptReady] = useState(
-    Boolean(window.Razorpay)
-  );
-  const [loading, setLoading] = useState(false);
-  const [configLoading, setConfigLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [razorpayReady, setRazorpayReady] = useState(false);
+  const [paying, setPaying] = useState(false);
+
+  const [form, setForm] = useState({
+    full_name: user?.name || "",
+    phone: user?.phone || "",
+    email: user?.email || "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    pincode: "",
+    landmark: "",
+  });
 
   useEffect(() => {
-    let active = true;
-
     async function setupPayment() {
-      setConfigLoading(true);
-      setError("");
-
       try {
-        const [scriptLoaded, configResponse] = await Promise.all([
-          loadRazorpayScript(),
-          api.get(`${BACKEND_URL}/api/payments/config`),
-        ]);
+        const scriptLoaded = await loadRazorpayScript();
+        setRazorpayReady(scriptLoaded);
 
-        if (!active) return;
-
-        setScriptReady(scriptLoaded);
-
-        const config = configResponse.data || {};
+        const { data } = await api.get(
+          "http://localhost:8001/api/payments/config"
+        );
 
         setPayCfg({
-          key_id: config.key_id || "",
-          is_live: Boolean(config.is_live),
-          currency: config.currency || "INR",
+          is_live: Boolean(data.is_live),
+          key_id: data.key_id || "",
+          currency: data.currency || "INR",
+        });
+      } catch {
+        setPayCfg({
+          is_live: false,
+          key_id: "",
+          currency: "INR",
         });
 
-        if (!scriptLoaded) {
-          setError(
-            "Razorpay checkout could not load. Check your internet connection, browser extensions, or content blockers, then refresh."
-          );
-        } else if (!config.key_id) {
-          setError(
-            "Razorpay Key ID is missing. Configure RAZORPAY_KEY_ID in your backend hosting environment."
-          );
-        }
-      } catch (err) {
-        if (!active) return;
-
-        setError(
-          err.response?.data?.detail ||
-            "Unable to connect to the payment service. Check that your Render backend is running."
-        );
-      } finally {
-        if (active) setConfigLoading(false);
+        setRazorpayReady(false);
       }
     }
 
     setupPayment();
-
-    return () => {
-      active = false;
-    };
   }, []);
 
-  const subtotal = cartItems.reduce((sum, item) => {
-    const price = Number(item.price ?? item.sale_price ?? 0);
-    const quantity = Number(item.quantity ?? 1);
-    return sum + price * quantity;
-  }, 0);
+  if (cart.length === 0) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <div className="container-oc py-20 text-center">
+          <h1 className="display text-4xl">CART IS EMPTY</h1>
 
-  const shipping = subtotal > 0 ? 0 : 0;
-  const total = subtotal + shipping;
-
-  function updateField(event) {
-    const { name, value } = event.target;
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+          <Link to="/shop" className="btn-primary mt-6 inline-flex">
+            SHOP NOW
+          </Link>
+        </div>
+      </div>
+    );
   }
 
-  function validateForm() {
-    if (!cartItems.length) {
-      return "Your cart is empty.";
+  const normalDiscount = coupon
+    ? coupon.discount_type === "percent"
+      ? (subtotal * coupon.value) / 100
+      : coupon.value
+    : 0;
+
+  const discount = TEST_PAYMENT_MODE ? 0 : normalDiscount;
+
+  const afterDisc = TEST_PAYMENT_MODE
+    ? TEST_PRODUCT_PRICE
+    : Math.max(subtotal - discount, 0);
+
+  const shipping = TEST_PAYMENT_MODE
+    ? TEST_SHIPPING
+    : coupon?.code === "FREESHIP" || afterDisc >= 1999
+    ? 0
+    : 99;
+
+  const gst = TEST_PAYMENT_MODE
+    ? TEST_GST
+    : Math.round(afterDisc * 0.05);
+
+  const total = afterDisc + shipping + gst;
+
+  const paymentItems = TEST_PAYMENT_MODE
+    ? cart.slice(0, 1).map((item) => ({
+        ...item,
+        price: TEST_PRODUCT_PRICE,
+        qty: 1,
+      }))
+    : cart;
+
+  const onChange = (key) => (event) => {
+    setForm({
+      ...form,
+      [key]: event.target.value,
+    });
+  };
+
+  const validate = () => {
+    const requiredFields = [
+      "full_name",
+      "phone",
+      "email",
+      "line1",
+      "city",
+      "state",
+      "pincode",
+    ];
+
+    for (const field of requiredFields) {
+      if (!String(form[field] || "").trim()) {
+        toast.error("Please fill all required fields.");
+        return false;
+      }
     }
 
-    if (
-      !form.name.trim() ||
-      !form.email.trim() ||
-      !form.phone.trim() ||
-      !form.address.trim() ||
-      !form.city.trim() ||
-      !form.state.trim() ||
-      !form.pincode.trim()
-    ) {
-      return "Please complete all shipping address fields.";
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) {
+      toast.error("Please enter a valid email address.");
+      return false;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      return "Please enter a valid email address.";
+    if (!/^[6-9]\d{9}$/.test(form.phone)) {
+      toast.error("Please enter a valid 10 digit Indian phone number.");
+      return false;
     }
 
-    if (!/^[6-9]\d{9}$/.test(form.phone.trim())) {
-      return "Enter a valid 10-digit Indian mobile number.";
+    if (!/^\d{6}$/.test(form.pincode)) {
+      toast.error("Please enter a valid 6 digit pincode.");
+      return false;
     }
 
-    if (!/^\d{6}$/.test(form.pincode.trim())) {
-      return "Enter a valid 6-digit PIN code.";
-    }
+    return true;
+  };
 
-    return "";
-  }
-
-  async function placeOrder(event) {
+  const placeOrder = async (event) => {
     event.preventDefault();
 
-    const validationError = validateForm();
-
-    if (validationError) {
-      setError(validationError);
-      toast.error(validationError);
-      return;
-    }
-
-    if (!window.Razorpay || !scriptReady) {
-      setError(
-        "Razorpay checkout script is not loaded. Click Retry Payment Setup below."
-      );
-      return;
-    }
+    if (!validate()) return;
 
     if (!payCfg.key_id) {
-      setError("Razorpay configuration is missing from the backend.");
+      toast.error("Razorpay key is missing. Check backend payment config.");
       return;
     }
 
-    setLoading(true);
-    setError("");
+    if (!razorpayReady || !window.Razorpay) {
+      toast.error("Razorpay checkout could not load. Refresh and try again.");
+      return;
+    }
+
+    setPaying(true);
 
     try {
-      const shippingAddress = {
-        ...form,
-        phone: form.phone.trim(),
-        pincode: form.pincode.trim(),
-      };
-
-      // Send the cart and shipping address to the backend.
-      // The backend must calculate the final payable amount.
-      const orderResponse = await api.post(
-        `${BACKEND_URL}/api/payments/create-order`,
+      const { data: razorpayOrder } = await api.post(
+        "http://localhost:8001/api/payments/create-order",
         {
-          items: cartItems,
-          shipping_address: shippingAddress,
-          coupon_code: null,
+          items: paymentItems,
+          shipping_address: form,
+          coupon_code: coupon?.code || null,
+
+          test_payment_mode: TEST_PAYMENT_MODE,
+          test_product_price: TEST_PRODUCT_PRICE,
+          test_shipping: TEST_SHIPPING,
+          test_gst: TEST_GST,
+          test_total: total,
         }
       );
 
-      const order = orderResponse.data;
-
-      if (!order?.id || !Number(order?.amount)) {
-        throw new Error(
-          "The backend did not return a valid Razorpay order. Check the backend logs."
-        );
-      }
-
       const options = {
         key: payCfg.key_id,
-        amount: order.amount,
-        currency: order.currency || payCfg.currency,
-        name: "Operator Choice",
-        description: "Order payment",
-        order_id: order.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency || "INR",
+        order_id: razorpayOrder.id,
+
+        name: "Operator's Choice",
+        description: TEST_PAYMENT_MODE
+          ? "₹2 Test Payment"
+          : "Forged for the Fearless",
+
+        image: "",
+
         prefill: {
-          name: form.name,
+          name: form.full_name,
           email: form.email,
           contact: form.phone,
         },
+
         notes: {
-          shipping_city: form.city,
+          brand: "Operator's Choice",
+          city: form.city,
+          pincode: form.pincode,
+          test_payment_mode: TEST_PAYMENT_MODE ? "yes" : "no",
         },
+
         theme: {
-          color: "#111827",
+          color: "#D4AF37",
+        },
+
+        retry: {
+          enabled: true,
+          max_count: 1,
         },
 
         handler: async function (response) {
           try {
-            setError("");
-
-            await api.post(
-              `${BACKEND_URL}/api/payments/verify`,
+            const { data: order } = await api.post(
+              "http://localhost:8001/api/payments/verify",
               {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                items: cartItems,
-                shipping_address: shippingAddress,
-                coupon_code: null,
+
+                items: paymentItems,
+                shipping_address: form,
+                coupon_code: coupon?.code || null,
+
+                test_payment_mode: TEST_PAYMENT_MODE,
+                test_product_price: TEST_PRODUCT_PRICE,
+                test_shipping: TEST_SHIPPING,
+                test_gst: TEST_GST,
+                test_total: total,
               }
             );
 
             clearCart();
-            toast.success("Payment verified successfully.");
-            navigate("/order-success", { replace: true });
-          } catch (verificationError) {
-            const message =
-              verificationError.response?.data?.detail ||
-              "Payment was received, but verification failed. Contact support with your Razorpay payment ID.";
 
-            setError(
-              `${message} Payment ID: ${response.razorpay_payment_id}`
+            toast.success("Payment successful. Order confirmed.");
+
+            nav(`/track?order=${order.order_number}`, {
+              replace: true,
+            });
+          } catch (error) {
+            toast.error(
+              error.response?.data?.detail ||
+                "Payment done, but verification failed. Contact support."
             );
-            toast.error(message);
-          } finally {
-            setLoading(false);
+
+            setPaying(false);
           }
         },
 
         modal: {
           ondismiss: function () {
-            setLoading(false);
+            setPaying(false);
+            toast.message("Payment cancelled.");
           },
         },
       };
 
-      const checkout = new window.Razorpay(options);
+      const razorpay = new window.Razorpay(options);
 
-      checkout.on("payment.failed", function (response) {
-        const message =
-          response.error?.description ||
-          "Payment failed. Please try again.";
-
-        setError(message);
-        toast.error(message);
-        setLoading(false);
-      });
-
-      checkout.open();
-    } catch (err) {
-      const message =
-        err.response?.data?.detail ||
-        err.message ||
-        "Unable to start payment. Please try again.";
-
-      setError(
-        typeof message === "string"
-          ? message
-          : JSON.stringify(message)
-      );
-
-      toast.error("Could not start Razorpay payment.");
-      setLoading(false);
-    }
-  }
-
-  async function retryPaymentSetup() {
-    setError("");
-    setConfigLoading(true);
-
-    try {
-      const scriptLoaded = await loadRazorpayScript();
-      const response = await api.get(
-        `${BACKEND_URL}/api/payments/config`
-      );
-
-      setScriptReady(scriptLoaded);
-      setPayCfg({
-        key_id: response.data?.key_id || "",
-        is_live: Boolean(response.data?.is_live),
-        currency: response.data?.currency || "INR",
-      });
-
-      if (!scriptLoaded) {
-        throw new Error(
-          "Razorpay script is still blocked. Try another browser or network."
+      razorpay.on("payment.failed", function (response) {
+        toast.error(
+          response.error?.description || "Payment failed. Please try again."
         );
-      }
 
-      if (!response.data?.key_id) {
-        throw new Error("Razorpay Key ID is missing on the backend.");
-      }
+        setPaying(false);
+      });
 
-      toast.success("Payment setup is ready.");
-    } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-          err.message ||
-          "Could not initialize Razorpay."
+      razorpay.open();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.detail ||
+          error.message ||
+          "Could not start payment. Try again."
       );
-    } finally {
-      setConfigLoading(false);
+
+      setPaying(false);
     }
-  }
+  };
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8">
-      <div className="mb-6">
-        <Link to="/cart" className="text-sm underline">
-          ← Back to cart
-        </Link>
+    <div className="min-h-screen bg-black text-white">
+      <div className="container-oc py-10" data-testid="checkout-page">
+        <div className="mb-8">
+          <p className="label-tiny text-gold mb-3">// SECURE CHECKOUT</p>
 
-        <h1 className="mt-4 text-3xl font-bold">
-          Secure Checkout
-        </h1>
+          <h1 className="display text-5xl">CHECKOUT</h1>
 
-        <p className="mt-2 text-sm text-gray-600">
-          UPI · Cards · Net Banking · Wallets
-        </p>
+          <p className="text-neutral-500 text-sm mt-2">
+            Complete shipping details and pay securely with Razorpay.
+          </p>
 
-        <p className="mt-2 text-sm font-medium">
-          Razorpay Secure Checkout{" "}
-          {payCfg.is_live ? "LIVE MODE" : "TEST MODE"}
-        </p>
-      </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="mb-5 rounded border border-red-300 bg-red-50 p-4 text-sm text-red-800"
-        >
-          {error}
-        </div>
-      )}
-
-      <div className="grid gap-8 md:grid-cols-2">
-        <form onSubmit={placeOrder} className="space-y-4">
-          <h2 className="text-xl font-semibold">
-            Shipping information
-          </h2>
-
-          {[
-            ["name", "Full name", "text"],
-            ["email", "Email address", "email"],
-            ["phone", "10-digit mobile number", "tel"],
-            ["address", "Full address", "text"],
-            ["city", "City", "text"],
-            ["state", "State", "text"],
-            ["pincode", "6-digit PIN code", "text"],
-          ].map(([name, label, type]) => (
-            <div key={name}>
-              <label
-                htmlFor={name}
-                className="mb-1 block text-sm font-medium"
-              >
-                {label}
-              </label>
-
-              <input
-                id={name}
-                name={name}
-                type={type}
-                value={form[name]}
-                onChange={updateField}
-                required
-                autoComplete={
-                  name === "name"
-                    ? "name"
-                    : name === "email"
-                      ? "email"
-                      : name === "phone"
-                        ? "tel"
-                        : name === "address"
-                          ? "street-address"
-                          : "off"
-                }
-                className="w-full rounded border border-gray-300 px-3 py-2"
-              />
-            </div>
-          ))}
-
-          <button
-            type="submit"
-            disabled={loading || configLoading || !cartItems.length}
-            className="w-full rounded bg-black px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading
-              ? "Processing..."
-              : configLoading
-                ? "Loading payment..."
-                : `Pay ${inr(total)}`}
-          </button>
-
-          <button
-            type="button"
-            onClick={retryPaymentSetup}
-            disabled={configLoading}
-            className="w-full rounded border px-4 py-2 disabled:opacity-50"
-          >
-            {configLoading ? "Checking..." : "Retry Payment Setup"}
-          </button>
-        </form>
-
-        <aside className="h-fit rounded border p-5">
-          <h2 className="mb-4 text-xl font-semibold">
-            Order summary
-          </h2>
-
-          {!cartItems.length ? (
-            <p className="text-sm text-gray-600">
-              Your cart is empty.{" "}
-              <Link to="/shop" className="underline">
-                Continue shopping
-              </Link>
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {cartItems.map((item, index) => (
-                <div
-                  key={item.id || item._id || index}
-                  className="flex justify-between gap-3 text-sm"
-                >
-                  <span>
-                    {item.name || item.title || "Product"} ×{" "}
-                    {Number(item.quantity || 1)}
-                  </span>
-
-                  <span>
-                    {inr(
-                      Number(item.price ?? item.sale_price ?? 0) *
-                        Number(item.quantity || 1)
-                    )}
-                  </span>
-                </div>
-              ))}
-
-              <hr />
-
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{inr(subtotal)}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span>Shipping</span>
-                <span>{shipping === 0 ? "Free" : inr(shipping)}</span>
-              </div>
-
-              <hr />
-
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total</span>
-                <span>{inr(total)}</span>
-              </div>
+          {TEST_PAYMENT_MODE && (
+            <div className="mt-4 border border-gold/40 bg-gold/10 text-gold px-4 py-3 text-xs tracking-[0.18em] uppercase">
+              Test mode active: Product ₹1 + Shipping ₹1 + GST ₹0 = ₹2
             </div>
           )}
-        </aside>
+        </div>
+
+        <form
+          onSubmit={placeOrder}
+          className="grid lg:grid-cols-[1.4fr_1fr] gap-10"
+        >
+          <div className="space-y-6">
+            <Section title="Contact">
+              <Field
+                label="Full Name"
+                value={form.full_name}
+                onChange={onChange("full_name")}
+                testid="f-name"
+                required
+              />
+
+              <Field
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={onChange("email")}
+                testid="f-email"
+                required
+              />
+
+              <Field
+                label="Phone"
+                value={form.phone}
+                onChange={onChange("phone")}
+                testid="f-phone"
+                required
+              />
+            </Section>
+
+            <Section title="Shipping Address">
+              <Field
+                label="Address Line 1"
+                value={form.line1}
+                onChange={onChange("line1")}
+                testid="f-line1"
+                required
+              />
+
+              <Field
+                label="Address Line 2"
+                value={form.line2}
+                onChange={onChange("line2")}
+                testid="f-line2"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field
+                  label="City"
+                  value={form.city}
+                  onChange={onChange("city")}
+                  testid="f-city"
+                  required
+                />
+
+                <Field
+                  label="State"
+                  value={form.state}
+                  onChange={onChange("state")}
+                  testid="f-state"
+                  required
+                />
+
+                <Field
+                  label="Pincode"
+                  value={form.pincode}
+                  onChange={onChange("pincode")}
+                  testid="f-pincode"
+                  required
+                />
+
+                <Field
+                  label="Landmark"
+                  value={form.landmark}
+                  onChange={onChange("landmark")}
+                  testid="f-landmark"
+                />
+              </div>
+            </Section>
+
+            <Section title="Payment">
+              <div className="border border-white/10 bg-white/[0.03] p-4 flex items-center gap-3">
+                <input
+                  type="radio"
+                  checked
+                  readOnly
+                  className="accent-gold"
+                />
+
+                <div>
+                  <div className="font-semibold">
+                    Razorpay Secure Checkout
+
+                    {payCfg.is_live ? (
+                      <span className="label-tiny text-green-400 ml-2">
+                        LIVE
+                      </span>
+                    ) : (
+                      <span className="label-tiny text-gold ml-2">
+                        NOT LIVE
+                      </span>
+                    )}
+
+                    {TEST_PAYMENT_MODE && (
+                      <span className="label-tiny text-red-400 ml-2">
+                        ₹2 TEST
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-neutral-500">
+                    UPI · Cards · Net Banking · Wallets
+                  </div>
+
+                  {!razorpayReady && (
+                    <div className="text-xs text-red-400 mt-2">
+                      Razorpay checkout script is not loaded yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Section>
+          </div>
+
+          <aside
+            className="border border-white/10 bg-white/[0.03] p-6 self-start lg:sticky lg:top-28"
+            data-testid="order-summary"
+          >
+            <h2 className="display text-2xl">ORDER SUMMARY</h2>
+
+            <div className="mt-4 space-y-3 max-h-[260px] overflow-y-auto pr-2">
+              {paymentItems.map((item, index) => (
+                <div key={index} className="flex gap-3 text-sm">
+                  <div className="w-14 h-16 bg-ink-800 border border-white/10 shrink-0 overflow-hidden">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        className="w-full h-full object-cover"
+                        alt=""
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[9px] text-neutral-600 uppercase">
+                        No Image
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="font-semibold leading-tight">
+                      {item.name}
+                    </div>
+
+                    <div className="label-tiny">
+                      {item.size}
+                      {item.color ? ` · ${item.color}` : ""} × {item.qty}
+                    </div>
+
+                    {TEST_PAYMENT_MODE && (
+                      <div className="text-[10px] text-gold mt-1 uppercase tracking-[0.14em]">
+                        Test item price
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mono">{inr(item.price * item.qty)}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 space-y-3 text-sm border-t border-white/10 pt-4">
+              <Row label="Subtotal" value={inr(afterDisc)} />
+
+              {discount > 0 && (
+                <Row
+                  label={`Discount (${coupon?.code})`}
+                  value={`− ${inr(discount)}`}
+                />
+              )}
+
+              <Row label="Shipping" value={shipping ? inr(shipping) : "FREE"} />
+
+              <Row
+                label={TEST_PAYMENT_MODE ? "GST" : "GST (5%)"}
+                value={inr(gst)}
+              />
+
+              <div className="h-px bg-white/10 my-3" />
+
+              <Row label="Grand Total" value={inr(total)} bold />
+            </div>
+
+            <button
+              type="submit"
+              disabled={paying || !razorpayReady || !payCfg.key_id}
+              className="btn-primary w-full mt-6 disabled:opacity-60 justify-center"
+              data-testid="place-order"
+            >
+              {paying ? "PROCESSING..." : `PAY ${inr(total)}`}
+            </button>
+
+            <div className="label-tiny mt-3 text-neutral-500 text-center">
+              256-bit secure payment via Razorpay
+            </div>
+
+            {payCfg.is_live && (
+              <div className="mt-3 text-[11px] text-center text-gold">
+                Live payment mode is active.
+              </div>
+            )}
+
+            {TEST_PAYMENT_MODE && (
+              <div className="mt-3 text-[11px] text-center text-red-400">
+                Temporary testing mode. Turn off before launch.
+              </div>
+            )}
+          </aside>
+        </form>
       </div>
-    </main>
+    </div>
+  );
+}
+
+function Section({ title, children }) {
+  return (
+    <div className="border border-white/10 bg-white/[0.03] p-6 space-y-4">
+      <h3 className="label-tiny text-gold">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+  testid,
+  required,
+}) {
+  return (
+    <div>
+      <label className="label-tiny block mb-1">
+        {label}
+        {required && <span className="text-gold"> *</span>}
+      </label>
+
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        required={required}
+        className="input-oc"
+        data-testid={testid}
+      />
+    </div>
+  );
+}
+
+function Row({ label, value, bold }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className={bold ? "display text-base" : "text-neutral-400"}>
+        {label}
+      </span>
+
+      <span className={`mono ${bold ? "text-gold text-lg" : ""}`}>
+        {value}
+      </span>
+    </div>
   );
 }
